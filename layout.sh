@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# name of the folder with images in input dir
+# Configuration Variables
+# Name of the folder with images in input dir
 input_dir_name="pics_2"
 
 # Option to choose between 2 or 4 images per photo
@@ -11,7 +12,6 @@ crop_images=true
 
 # Define background color
 background="white"
-
 
 # Define the directory where the images are located
 input_dir="input/$input_dir_name"
@@ -27,19 +27,21 @@ if [ "$images_per_photo" -eq 2 ]; then
   tile="1x2"
   slot_width=$((output_width))
   slot_height=$((output_height / 2))
+  slot_size="${slot_width}x${slot_height}"
 else
   tile="2x2"
   slot_width=$((output_width / 2))
   slot_height=$((output_height / 2))
+  slot_size="${slot_width}x${slot_height}"
 fi
-slot_size="${slot_width}x${slot_height}"
 
 # Counter for batching images
 counter=0
 batch=1
 
-# Create output directory
+# Create output directory and clean it
 mkdir -p "$out_dir"
+rm -f "$out_dir"/*
 
 # Determine the geometry option based on whether to crop or scale the images
 if [ "$crop_images" = true ]; then
@@ -52,13 +54,26 @@ fi
 for img in "$input_dir"/*.{jpg,jpeg,png,heic,JPG,JPEG,PNG,HEIC}; do
   # Check if the file exists to avoid processing invalid paths
   if [ -e "$img" ]; then
-    images+=("$img")
+    # Rotate image if images_per_photo is set to 2
+    if [ "$images_per_photo" -eq 2 ]; then
+      rotated_img="${img%.*}_rotated.jpg"
+      magick "$img" -rotate 90 "$rotated_img"
+      images+=("$rotated_img")
+    else
+      images+=("$img")
+    fi
+
     counter=$((counter + 1))
 
     if [ $counter -eq "$images_per_photo" ]; then
       # Combine images into a tiled layout with white background and ensure each image is centered in its slot
-      montage "${images[@]}" -tile "$tile" -geometry "${geometry_option}" -background $background -gravity center -extent "${slot_size}" -resize "${output_size}" "$out_dir/output_batch_${batch}.jpg"
+      magick montage "${images[@]}" -tile "$tile" -geometry "${geometry_option}" -background $background -gravity center -extent "${slot_size}" -resize "${output_size}" "$out_dir/output_batch_${batch}.jpg"
       
+      # Clean up rotated images if created
+      if [ "$images_per_photo" -eq 2 ]; then
+        rm -f "${images[@]}"
+      fi
+
       # Reset counter and images array
       counter=0
       batch=$((batch + 1))
@@ -69,5 +84,10 @@ done
 
 # If there are leftover images (less than the desired images per photo), process them
 if [ $counter -gt 0 ]; then
-  montage "${images[@]}" -tile "$tile" -geometry "${geometry_option}" -background $background -gravity center -extent "${slot_size}" -resize "${output_size}" "$out_dir/output_batch_${batch}.jpg"
+  magick montage "${images[@]}" -tile "$tile" -geometry "${geometry_option}" -background $background -gravity center -extent "${slot_size}" -resize "${output_size}" "$out_dir/output_batch_${batch}.jpg"
+  
+  # Clean up rotated images if created
+  if [ "$images_per_photo" -eq 2 ]; then
+    rm -f "${images[@]}"
+  fi
 fi

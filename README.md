@@ -1,3 +1,7 @@
+I needed a 4x4 collages for my kids school books, but online tools were super bad...
+I did couple of rounds on ChatGPT conversations to generate this sctipt wihch uses ImageMagicCLI scripts to 
+generate images i neede, and it worked out perfect
+
 Prompt:
 
 Hi, I need an ImageMagick CLI script for combining images located in a folder. Here are my requirements:
