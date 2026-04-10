@@ -40,7 +40,7 @@ There is no application server, package manager, or test suite—only `layout.sh
 ## Configuration (top of `layout.sh`)
 
 - **`input_dir_name`** — subfolder under `input/` to read from.
-- **`images_per_photo`** — `2` (1×2) or `4` (2×2).
+- **`images_per_photo`** — `2` (1×2), `3` (hero top half + two quarter-size bottom), or `4` (2×2).
 - **`crop_images`** — `true`: fill each slot and crop (`geometry` ends with `^`). `false`: scale to fit without cropping.
 - **`background`** — montage background color (e.g. `white`).
 - **`output_width` / `output_height`** — canvas size in pixels (documented in script as 4×6 @ 300 DPI).
@@ -48,10 +48,10 @@ There is no application server, package manager, or test suite—only `layout.sh
 ## Processing behavior (for maintainers)
 
 1. **Preprocess**: All matching inputs are converted with `magick … -auto-orient -strip` into `output/<album>/preprocessed/*.jpg`.
-2. **Orientation**: For 4-up layouts, images are nudged toward **vertical** slots; for 2-up, toward **horizontal** slots (`check_and_rotate_image`). Temporary `*_rotated.jpg` files are removed after each batch.
-3. **Batching**: Preprocessed JPEGs are walked in glob order; every 2 or 4 images become `output_batch_<n>.jpg`. A final short batch is still montaged if the count is not a multiple of `images_per_photo`.
+2. **Orientation**: For 4-up layouts, images are nudged toward **vertical** slots; for 2-up, toward **horizontal** slots (`check_and_rotate_image`). For 3-up, the first image (hero) is nudged **horizontal** and the remaining two are nudged **vertical**. Temporary `*_rotated.jpg` files are removed after each batch.
+3. **Batching**: Preprocessed JPEGs are walked in glob order; every 2, 3, or 4 images become `output_batch_<n>.jpg`. A final short batch is still processed if the count is not a multiple of `images_per_photo`.
 
-Montage uses `magick montage` with `-tile`, `-geometry`, `-gravity center`, `-extent` per slot, and a final `-resize` to the full output dimensions.
+For 2-up and 4-up, montage uses `magick montage` with `-tile`, `-geometry`, `-gravity center`, `-extent` per slot, and a final `-resize` to the full output dimensions. For 3-up, the `assemble_three_up` function crops the hero image to the top half, montages the two small images into a bottom strip, and vertically appends them.
 
 ## Conventions for edits
 
